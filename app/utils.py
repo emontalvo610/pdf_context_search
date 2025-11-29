@@ -48,12 +48,7 @@ class DocumentService:
                 if not line:
                     continue
                 
-                # Match hierarchical numbered sections with various formats
-                # Matches: "1.", "1.1.", "1.1.1.", "10.1.1.1.", etc.
                 section_match = re.match(r'^(\d+(?:\.\d+)*)\.\s+(.+?)$', line)
-                
-                # Also match section headers without number on same line
-                # The content might be on the next line
                 header_only_match = re.match(r'^(\d+(?:\.\d+)*)\.$', line)
                 
                 if section_match:
@@ -70,16 +65,12 @@ class DocumentService:
                         sections.append(section)
                         section_map[current_section['id']] = section
                     
-                    # Parse new section
                     section_num = section_match.group(1)
                     section_title = section_match.group(2).strip()
                     
-                    # If title is too short, it might continue on next lines
-                    # Just use what we have
                     if not section_title or len(section_title) < 3:
                         section_title = f"Section {section_num}"
                     
-                    # Determine parent based on numbering depth
                     parent_id = None
                     num_parts = section_num.split('.')
                     if len(num_parts) > 1:
