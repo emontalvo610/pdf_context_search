@@ -9,7 +9,7 @@ from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.llms.openai import OpenAI
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 import qdrant_client
-from qdrant_client.models import Distance, VectorParams
+from qdrant_client.models import Distance, VectorParams, Filter, FieldCondition, MatchValue
 
 from app.models import Section, Citation, SearchResponse
 
@@ -222,6 +222,33 @@ class QdrantService:
             print(f"Inserting document {i+1}/{len(docs)}: {doc.metadata.get('section_title', 'Unknown')}")
             self.index.insert(doc)
         print(f"Successfully loaded {len(docs)} documents")
+    
+    def delete_document(self, document_id: str) -> None:
+        """Delete all vectors in Qdrant associated with a given document_id.
+
+        This relies on `document_id` being present in the payload metadata for each point,
+        which is ensured by how we build `LlamaDocument` instances in `sections_to_llama_documents`.
+        """
+        if not self.client:
+            raise ValueError("Client not initialized. Call connect() first.")
+
+        try:
+            print(f"Deleting vectors for document_id={document_id} from Qdrant...")
+            self.client.delete(
+                collection_name=self.collection_name,
+                points_selector=Filter(
+                    must=[
+                        FieldCondition(
+                            key="document_id",
+                            match=MatchValue(value=document_id),
+                        )
+                    ]
+                ),
+            )
+            print(f"Deleted vectors for document_id={document_id} from Qdrant")
+        except Exception as e:
+            # Log the error but don't raise, so document deletion in the API can still succeed
+            print(f"Error deleting vectors for document {document_id} from Qdrant: {e}")
     
     def query(self, query_str: str) -> SearchResponse:
         if not self.index:

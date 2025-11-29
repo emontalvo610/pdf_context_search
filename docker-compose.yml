@@ -1,0 +1,43 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pdf-search-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./app:/norm-fullstack/app
+      - ./docs:/norm-fullstack/docs
+      - ./data:/norm-fullstack/data
+      - ./uploads:/norm-fullstack/uploads
+      - ./qdrant_data:/norm-fullstack/qdrant_data
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./fe-app
+      dockerfile: Dockerfile.dev
+    container_name: pdf-search-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - INTERNAL_API_URL=http://backend:8000
+    volumes:
+      - ./fe-app:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+

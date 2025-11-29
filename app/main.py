@@ -121,13 +121,16 @@ async def delete_document(document_id: str):
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    # Delete the document from storage
     await storage.delete_document(document_id)
-    
-    # Delete the uploaded file
+  
     file_path = os.path.join(UPLOAD_DIR, f"{document_id}.pdf")
     if os.path.exists(file_path):
         os.remove(file_path)
+
+    try:
+        qdrant_service.delete_document(document_id)
+    except Exception as e:
+        print(f"Failed to delete Qdrant vectors for document {document_id}: {e}")
     
     return {"message": "Document deleted successfully", "document_id": document_id}
 
